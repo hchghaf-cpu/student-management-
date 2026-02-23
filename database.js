@@ -13,7 +13,12 @@ let db = null;
 
 /* ── Public: init (must be awaited once at startup) ── */
 async function initDB() {
-  const SQL = await initSqlJs();
+  // Explicitly load the WASM binary so it works in serverless environments
+  // (Vercel, etc.) where the runtime can't auto-discover the .wasm file.
+  const wasmBinary = fs.readFileSync(
+    path.join(require.resolve('sql.js'), '..', '..', 'dist', 'sql-wasm.wasm')
+  );
+  const SQL = await initSqlJs({ wasmBinary });
 
   if (fs.existsSync(DB_PATH)) {
     const buf = fs.readFileSync(DB_PATH);
