@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Management System</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ══ TOP NAV ══════════════════════════════════════════════════════════════ -->
+<header class="topbar">
+  <div class="topbar__brand">
+    <span class="topbar__icon">🎓</span>
+    <span class="topbar__title">Student Management System</span>
+  </div>
+  <nav class="topbar__nav">
+    <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+    <button class="nav-btn"        data-view="students">Students</button>
+    <button class="nav-btn"        data-view="add">Add Student</button>
+  </nav>
+</header>
+
+<main class="main">
+
+  <!-- ══ TOAST ══════════════════════════════════════════════════════════════ -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ══ MODAL ══════════════════════════════════════════════════════════════ -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal__header">
+        <h2 id="modal-title" class="modal__title">Edit Student</h2>
+        <button class="modal__close" id="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <form id="edit-form" novalidate>
+          <input type="hidden" id="edit-id" />
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="edit-name">Full Name <span class="req">*</span></label>
+              <input type="text" id="edit-name" placeholder="e.g. Alice Johnson" required />
+              <span class="field-error" data-field="name"></span>
+            </div>
+            <div class="form-group">
+              <label for="edit-email">Email <span class="req">*</span></label>
+              <input type="email" id="edit-email" placeholder="alice@example.com" required />
+              <span class="field-error" data-field="email"></span>
+            </div>
+            <div class="form-group">
+              <label for="edit-phone">Phone</label>
+              <input type="text" id="edit-phone" placeholder="555-0100" />
+            </div>
+            <div class="form-group">
+              <label for="edit-course">Course <span class="req">*</span></label>
+              <input type="text" id="edit-course" placeholder="e.g. Computer Science" required />
+              <span class="field-error" data-field="course"></span>
+            </div>
+            <div class="form-group">
+              <label for="edit-grade">Grade</label>
+              <select id="edit-grade">
+                <option value="">— Select —</option>
+                <option>A</option><option>B</option><option>C</option><option>D</option><option>F</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-dob">Date of Birth</label>
+              <input type="date" id="edit-dob" />
+            </div>
+            <div class="form-group">
+              <label for="edit-status">Status</label>
+              <select id="edit-status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+            <div class="form-group form-group--wide">
+              <label for="edit-address">Address</label>
+              <textarea id="edit-address" rows="2" placeholder="Street, City, State"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn--secondary" id="modal-cancel">Cancel</button>
+            <button type="submit" class="btn btn--primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CONFIRM DIALOG ═════════════════════════════════════════════════════ -->
+  <div id="confirm-overlay" class="modal-overlay hidden">
+    <div class="modal modal--sm" role="dialog" aria-modal="true">
+      <div class="modal__header">
+        <h2 class="modal__title">Confirm Delete</h2>
+      </div>
+      <div class="modal__body">
+        <p id="confirm-message">Are you sure you want to delete this student?</p>
+        <div class="form-actions">
+          <button class="btn btn--secondary" id="confirm-cancel">Cancel</button>
+          <button class="btn btn--danger"    id="confirm-ok">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIEW: DASHBOARD ════════════════════════════════════════════════════ -->
+  <section id="view-dashboard" class="view">
+    <h1 class="view__heading">Dashboard</h1>
+
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card stat-card--blue">
+        <div class="stat-card__value" id="stat-total">—</div>
+        <div class="stat-card__label">Total Students</div>
+      </div>
+      <div class="stat-card stat-card--green">
+        <div class="stat-card__value" id="stat-active">—</div>
+        <div class="stat-card__label">Active</div>
+      </div>
+      <div class="stat-card stat-card--red">
+        <div class="stat-card__value" id="stat-inactive">—</div>
+        <div class="stat-card__label">Inactive</div>
+      </div>
+      <div class="stat-card stat-card--purple">
+        <div class="stat-card__value" id="stat-courses">—</div>
+        <div class="stat-card__label">Courses</div>
+      </div>
+    </div>
+
+    <div class="dash-panels">
+      <div class="panel">
+        <h3 class="panel__title">Students by Course</h3>
+        <div id="course-chart" class="bar-chart"></div>
+      </div>
+      <div class="panel">
+        <h3 class="panel__title">Grade Distribution</h3>
+        <div id="grade-chart" class="bar-chart"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ VIEW: STUDENTS LIST ════════════════════════════════════════════════ -->
+  <section id="view-students" class="view hidden">
+    <div class="view__toolbar">
+      <h1 class="view__heading">Students</h1>
+      <button class="btn btn--primary" id="btn-add-from-list">+ Add Student</button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <div class="filters__search">
+        <input type="text" id="filter-search" placeholder="Search by name, email, phone…" />
+      </div>
+      <select id="filter-course"><option value="">All Courses</option></select>
+      <select id="filter-status">
+        <option value="">All Status</option>
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+      <select id="filter-limit">
+        <option value="5">5 / page</option>
+        <option value="10" selected>10 / page</option>
+        <option value="25">25 / page</option>
+        <option value="50">50 / page</option>
+      </select>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table class="data-table" id="students-table">
+        <thead>
+          <tr>
+            <th class="sortable" data-col="id">ID <span class="sort-arrow"></span></th>
+            <th class="sortable" data-col="name">Name <span class="sort-arrow"></span></th>
+            <th class="sortable" data-col="email">Email <span class="sort-arrow"></span></th>
+            <th>Phone</th>
+            <th class="sortable" data-col="course">Course <span class="sort-arrow"></span></th>
+            <th class="sortable" data-col="grade">Grade <span class="sort-arrow"></span></th>
+            <th class="sortable" data-col="status">Status <span class="sort-arrow"></span></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="students-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+  </section>
+
+  <!-- ══ VIEW: ADD STUDENT ══════════════════════════════════════════════════ -->
+  <section id="view-add" class="view hidden">
+    <h1 class="view__heading">Add New Student</h1>
+    <div class="form-card">
+      <form id="add-form" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="add-name">Full Name <span class="req">*</span></label>
+            <input type="text" id="add-name" placeholder="e.g. Alice Johnson" required />
+            <span class="field-error" data-field="name"></span>
+          </div>
+          <div class="form-group">
+            <label for="add-email">Email <span class="req">*</span></label>
+            <input type="email" id="add-email" placeholder="alice@example.com" required />
+            <span class="field-error" data-field="email"></span>
+          </div>
+          <div class="form-group">
+            <label for="add-phone">Phone</label>
+            <input type="text" id="add-phone" placeholder="555-0100" />
+          </div>
+          <div class="form-group">
+            <label for="add-course">Course <span class="req">*</span></label>
+            <input type="text" id="add-course" placeholder="e.g. Computer Science" required />
+            <span class="field-error" data-field="course"></span>
+          </div>
+          <div class="form-group">
+            <label for="add-grade">Grade</label>
+            <select id="add-grade">
+              <option value="">— Select —</option>
+              <option>A</option><option>B</option><option>C</option><option>D</option><option>F</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="add-dob">Date of Birth</label>
+            <input type="date" id="add-dob" />
+          </div>
+          <div class="form-group">
+            <label for="add-status">Status</label>
+            <select id="add-status">
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="form-group form-group--wide">
+            <label for="add-address">Address</label>
+            <textarea id="add-address" rows="2" placeholder="Street, City, State"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="reset" class="btn btn--secondary">Reset</button>
+          <button type="submit" class="btn btn--primary">Add Student</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<script src="js/app.js"></script>
+</body>
+</html>
