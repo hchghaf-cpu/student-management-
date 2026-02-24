@@ -58,6 +58,18 @@ body {
 .nav-btn:hover  { background: rgba(255,255,255,.15); color: #fff; }
 .nav-btn.active { background: rgba(255,255,255,.22); color: #fff; border-color: rgba(255,255,255,.4); }
 
+.topbar__user {
+  font-size: .82rem; color: rgba(255,255,255,.85);
+  padding: .4rem .8rem;
+  background: rgba(255,255,255,.12);
+  border-radius: var(--radius);
+  display: flex; align-items: center; gap: .35rem;
+}
+.nav-btn--logout {
+  background: rgba(220,38,38,.75); color: #fff; border-color: transparent;
+}
+.nav-btn--logout:hover { background: rgba(185,28,28,.9); color: #fff; }
+
 /* ── Main ──────────────────────────────────────────── */
 .main { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
 

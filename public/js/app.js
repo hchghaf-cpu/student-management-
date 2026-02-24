@@ -4,6 +4,48 @@
 
 const API = '/api/students';
 
+/* ── Auth Guard ────────────────────────────────────── */
+const TOKEN = localStorage.getItem('sms_token');
+if (!TOKEN) { window.location.replace('/login'); throw new Error('unauthenticated'); }
+
+const currentUser = (() => {
+  try { return JSON.parse(localStorage.getItem('sms_user')) || {}; } catch { return {}; }
+})();
+
+// Inject user info into topbar
+document.addEventListener('DOMContentLoaded', () => {
+  const nav = document.querySelector('.topbar__nav');
+  if (nav) {
+    const info = document.createElement('span');
+    info.className   = 'topbar__user';
+    info.textContent = `👤 ${currentUser.username || 'user'}`;
+    nav.prepend(info);
+
+    const logoutBtn = document.createElement('button');
+    logoutBtn.className   = 'nav-btn nav-btn--logout';
+    logoutBtn.textContent = '⏻ Logout';
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('sms_token');
+      localStorage.removeItem('sms_user');
+      window.location.replace('/login');
+    });
+    nav.appendChild(logoutBtn);
+  }
+});
+
+/* ── Authenticated fetch wrapper ───────────────────── */
+async function authFetch(url, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}), 'Authorization': `Bearer ${TOKEN}` };
+  const res = await fetch(url, { ...options, headers });
+  if (res.status === 401) {
+    localStorage.removeItem('sms_token');
+    localStorage.removeItem('sms_user');
+    window.location.replace('/login');
+    throw new Error('Session expired');
+  }
+  return res;
+}
+
 /* ── State ─────────────────────────────────────────── */
 const state = {
   page:   1,
@@ -76,7 +118,7 @@ document.getElementById('btn-add-from-list').addEventListener('click', () => sho
 /* ── Dashboard ─────────────────────────────────────── */
 async function loadDashboard() {
   try {
-    const res   = await fetch('/api/students/stats');
+    const res   = await authFetch('/api/students/stats');
     const stats = await res.json();
 
     document.getElementById('stat-total').textContent    = stats.total;
@@ -122,7 +164,7 @@ async function loadStudents() {
   tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="skeleton" style="height:16px;width:60%;margin:auto"></div></div></td></tr>`;
 
   try {
-    const res  = await fetch(`${API}?${params}`);
+    const res  = await authFetch(`${API}?${params}`);
     const data = await res.json();
     renderTable(data.data);
     renderPagination(data);
@@ -171,7 +213,7 @@ async function populateCourseFilter() {
   const sel = document.getElementById('filter-course');
   const cur = sel.value;
   try {
-    const res   = await fetch('/api/students/stats');
+    const res   = await authFetch('/api/students/stats');
     const stats = await res.json();
     sel.innerHTML = '<option value="">All Courses</option>';
     stats.courses.forEach(c => {
@@ -263,7 +305,7 @@ document.getElementById('filter-limit').addEventListener('change', e => {
 /* ── View Student (Read) ───────────────────────────── */
 async function viewStudent(id) {
   try {
-    const res = await fetch(`${API}/${id}`);
+    const res = await authFetch(`${API}/${id}`);
     const s   = await res.json();
     alert(`
 Student Details
@@ -287,7 +329,7 @@ Created:  ${new Date(s.created_at).toLocaleString()}
 /* ── Edit Modal ────────────────────────────────────── */
 async function openEditModal(id) {
   try {
-    const res = await fetch(`${API}/${id}`);
+    const res = await authFetch(`${API}/${id}`);
     const s   = await res.json();
 
     document.getElementById('edit-id').value      = s.id;
@@ -324,9 +366,8 @@ document.getElementById('edit-form').addEventListener('submit', async e => {
   const id   = document.getElementById('edit-id').value;
   const body = collectFormData('edit');
 
-  const res  = await fetch(`${API}/${id}`, {
+  const res  = await authFetch(`${API}/${id}`, {
     method:  'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body),
   });
   const data = await res.json();
@@ -349,9 +390,8 @@ document.getElementById('add-form').addEventListener('submit', async e => {
 
   const body = collectFormData('add');
 
-  const res  = await fetch(API, {
+  const res  = await authFetch(API, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body),
   });
   const data = await res.json();
@@ -371,7 +411,7 @@ async function deleteStudent(id, name) {
   const ok = await confirm(`Delete "${name}"? This action cannot be undone.`);
   if (!ok) return;
 
-  const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+  const res = await authFetch(`${API}/${id}`, { method: 'DELETE' });
   if (!res.ok) { showToast('Failed to delete student', 'error'); return; }
   showToast('Student deleted');
   if (state.page > 1) state.page--;

@@ -1,7 +1,7 @@
 const initSqlJs = require('sql.js');
+const bcrypt = require('bcryptjs');
 const fs   = require('fs');
 const path = require('path');
-const os   = require('os');
 
 // On Vercel (and most serverless platforms) the project root is read-only.
 // The only writable directory is /tmp.  Locally we keep the DB next to the code.
@@ -28,6 +28,7 @@ async function initDB() {
   }
 
   createSchema();
+  seedUsers();
   seedIfEmpty();
   console.log('  SQLite (sql.js/WASM) database ready');
 }
@@ -64,6 +65,15 @@ function persist() {
 
 function createSchema() {
   db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      username   TEXT NOT NULL UNIQUE,
+      password   TEXT NOT NULL,
+      role       TEXT NOT NULL DEFAULT 'admin',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  db.run(`
     CREATE TABLE IF NOT EXISTS students (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       name       TEXT  NOT NULL,
@@ -77,6 +87,15 @@ function createSchema() {
       created_at TEXT  NOT NULL DEFAULT (datetime('now'))
     )
   `);
+}
+
+function seedUsers() {
+  const row = queryOne('SELECT COUNT(*) AS cnt FROM users');
+  if (row && row.cnt > 0) return;
+  // Default credentials: admin / admin123
+  const hash = bcrypt.hashSync('admin123', 10);
+  run(`INSERT INTO users (username, password, role) VALUES (?, ?, ?)`,
+    ['admin', hash, 'admin']);
 }
 
 function seedIfEmpty() {

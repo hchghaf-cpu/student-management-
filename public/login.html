@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – Student Management System</title>
+  <link rel="stylesheet" href="/css/login.css" />
+</head>
+<body>
+
+  <div class="login-bg">
+    <!-- Decorative blobs -->
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
+  </div>
+
+  <main class="login-wrap">
+
+    <!-- Card -->
+    <div class="login-card">
+
+      <!-- Logo -->
+      <div class="login-logo">
+        <span class="login-logo__icon">🎓</span>
+        <h1 class="login-logo__title">Student Management</h1>
+        <p class="login-logo__sub">Sign in to continue</p>
+      </div>
+
+      <!-- Error banner -->
+      <div id="login-error" class="alert alert--error hidden"></div>
+
+      <!-- Form -->
+      <form id="login-form" novalidate autocomplete="off">
+
+        <div class="field">
+          <label class="field__label" for="username">Username</label>
+          <div class="field__wrap">
+            <span class="field__icon">👤</span>
+            <input
+              class="field__input"
+              type="text"
+              id="username"
+              name="username"
+              placeholder="admin"
+              autocomplete="username"
+              required
+            />
+          </div>
+          <span class="field__error" id="username-error"></span>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="password">Password</label>
+          <div class="field__wrap">
+            <span class="field__icon">🔒</span>
+            <input
+              class="field__input"
+              type="password"
+              id="password"
+              name="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            />
+            <button type="button" class="field__toggle" id="toggle-pw" aria-label="Show/hide password">👁</button>
+          </div>
+          <span class="field__error" id="password-error"></span>
+        </div>
+
+        <button type="submit" class="btn-login" id="btn-login">
+          <span id="btn-text">Sign In</span>
+          <span id="btn-spinner" class="spinner hidden"></span>
+        </button>
+
+      </form>
+
+      <!-- Hint -->
+      <div class="login-hint">
+        Default credentials: <strong>admin</strong> / <strong>admin123</strong>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    // ── If already logged in, redirect to dashboard ──
+    if (localStorage.getItem('sms_token')) {
+      window.location.replace('/');
+    }
+
+    // ── Toggle password visibility ──
+    document.getElementById('toggle-pw').addEventListener('click', () => {
+      const inp = document.getElementById('password');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    });
+
+    // ── Submit ──
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErrors();
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      let valid = true;
+
+      if (!username) { showFieldError('username', 'Username is required'); valid = false; }
+      if (!password) { showFieldError('password', 'Password is required'); valid = false; }
+      if (!valid) return;
+
+      setLoading(true);
+
+      try {
+        const res  = await fetch('/api/auth/login', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showBanner(data.error || 'Login failed');
+          setLoading(false);
+          return;
+        }
+
+        localStorage.setItem('sms_token', data.token);
+        localStorage.setItem('sms_user',  JSON.stringify(data.user));
+        window.location.replace('/');
+
+      } catch {
+        showBanner('Server error – please try again');
+        setLoading(false);
+      }
+    });
+
+    function setLoading(on) {
+      document.getElementById('btn-login').disabled = on;
+      document.getElementById('btn-text').textContent = on ? 'Signing in…' : 'Sign In';
+      document.getElementById('btn-spinner').classList.toggle('hidden', !on);
+    }
+
+    function showBanner(msg) {
+      const el = document.getElementById('login-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function showFieldError(field, msg) {
+      document.getElementById(`${field}-error`).textContent = msg;
+      document.getElementById(field).classList.add('error');
+    }
+
+    function clearErrors() {
+      document.getElementById('login-error').classList.add('hidden');
+      ['username', 'password'].forEach(f => {
+        document.getElementById(`${f}-error`).textContent = '';
+        document.getElementById(f).classList.remove('error');
+      });
+    }
+  </script>
+
+</body>
+</html>
